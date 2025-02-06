@@ -134,7 +134,7 @@ class _HomepageState extends State<Homepage> {
                   _buildSelectionButton(
                     icon: Icons.camera_alt,
                     label: "Camera",
-                    onTap: captureImage,
+                    onTap: openCustomCamera,
                     color: Color(0xFF50E3C2),
                   ),
                 ],

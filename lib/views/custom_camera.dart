@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 class CustomCameraScreen extends StatefulWidget {
   final Function(List<File>) onDone;
@@ -17,15 +16,6 @@ class _CustomCameraScreenState extends State<CustomCameraScreen> {
   bool _isCapturing = false;
   bool _isCameraInitialized = false;
   bool _flashOn = false;
-  String _selectedMode = "Document"; // Default selected mode
-
-  final List<String> _modes = [
-    "Photo",
-    "ID Card",
-    "Document",
-    "Book",
-    "Signature"
-  ];
 
   @override
   void initState() {
@@ -37,11 +27,8 @@ class _CustomCameraScreenState extends State<CustomCameraScreen> {
     try {
       final cameras = await availableCameras();
       final firstCamera = cameras.first;
-      _controller = CameraController(
-        firstCamera,
-        ResolutionPreset.high,
-        enableAudio: false,
-      );
+      _controller = CameraController(firstCamera, ResolutionPreset.high,
+          enableAudio: false);
       await _controller.initialize();
       if (!mounted) return;
       setState(() => _isCameraInitialized = true);
@@ -52,10 +39,20 @@ class _CustomCameraScreenState extends State<CustomCameraScreen> {
 
   Future<void> _captureImage() async {
     if (!_controller.value.isInitialized || _isCapturing) return;
+
     setState(() => _isCapturing = true);
+
+    // Set the correct flash mode before capturing the picture
+    await _controller.setFlashMode(_flashOn ? FlashMode.torch : FlashMode.off);
+
     try {
       final XFile image = await _controller.takePicture();
       setState(() => _capturedImages.add(File(image.path)));
+
+      // Reset flash to off after capturing the image unless manually toggled
+      if (!_flashOn) {
+        await _controller.setFlashMode(FlashMode.off);
+      }
     } catch (e) {
       print("Error capturing image: $e");
     }
@@ -64,7 +61,10 @@ class _CustomCameraScreenState extends State<CustomCameraScreen> {
 
   void _toggleFlash() async {
     _flashOn = !_flashOn;
+
+    // Toggle the flash mode based on the flashOn flag
     await _controller.setFlashMode(_flashOn ? FlashMode.torch : FlashMode.off);
+
     setState(() {});
   }
 
@@ -103,7 +103,8 @@ class _CustomCameraScreenState extends State<CustomCameraScreen> {
                   top: 40,
                   left: 20,
                   child: IconButton(
-                    icon: Icon(Icons.arrow_back, color: Colors.white, size: 30),
+                    icon: const Icon(Icons.arrow_back,
+                        color: Colors.white, size: 30),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ),
@@ -116,35 +117,6 @@ class _CustomCameraScreenState extends State<CustomCameraScreen> {
                     onPressed: _toggleFlash,
                   ),
                 ),
-                Positioned(
-                  bottom: 100,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: _modes.map((mode) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: GestureDetector(
-                          onTap: () => setState(() => _selectedMode = mode),
-                          child: Text(
-                            mode,
-                            style: TextStyle(
-                              color: _selectedMode == mode
-                                  ? Colors.blue
-                                  : Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-                if (_isCapturing)
-                  Positioned(
-                    bottom: 20,
-                    child: CircularProgressIndicator(color: Colors.white),
-                  ),
               ],
             ),
           ),
